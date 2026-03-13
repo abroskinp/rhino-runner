@@ -12,9 +12,6 @@ if (context === null) {
 }
 
 const ctx: CanvasRenderingContext2D = context;
-const touchButtons = {
-  restart: document.querySelector<HTMLButtonElement>('[data-control="restart"]'),
-};
 
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
@@ -30,7 +27,6 @@ const STAR_SPEED = 12;
 type InputState = {
   jumpPressed: boolean;
   downHeld: boolean;
-  restartPressed: boolean;
 };
 
 type RhinoState = {
@@ -114,7 +110,6 @@ type AudioEngine = {
 const input: InputState = {
   jumpPressed: false,
   downHeld: false,
-  restartPressed: false,
 };
 
 const audio: AudioEngine = {
@@ -137,9 +132,6 @@ window.addEventListener("keydown", (event) => {
     input.downHeld = true;
   }
 
-  if (event.code === "KeyR") {
-    input.restartPressed = true;
-  }
 });
 
 window.addEventListener("pointerdown", () => {
@@ -235,11 +227,9 @@ function loop(time: number): void {
 let previousTime = 0;
 
 function update(delta: number): void {
-  if (input.restartPressed) {
+  if (shouldRestartGame()) {
     resetGame();
   }
-
-  input.restartPressed = false;
 
   if (!game.gameOver) {
     game.started = game.started || input.jumpPressed || input.downHeld;
@@ -670,7 +660,7 @@ function drawMessages(): void {
 
   if (!game.started) {
     ctx.textAlign = "center";
-    const startText = compact ? "Тап по экрану или Space" : "SPACE чтобы стартовать";
+    const startText = compact ? "Тап по экрану или Space" : "Space чтобы стартовать";
     const hintText = compact
       ? "Тап - прыжок, удержание - пригнуться"
       : "Носорог бежит сам, ты только прыгай и пригибайся";
@@ -683,7 +673,7 @@ function drawMessages(): void {
   if (game.gameOver) {
     ctx.fillStyle = "#b54234";
     ctx.textAlign = "center";
-    ctx.fillText(compact ? "Носорог врезался. Tap Restart" : "Носорог врезался. Нажми R", WIDTH / 2, compact ? 48 : 32);
+    ctx.fillText(compact ? "Носорог врезался. Тапни для рестарта" : "Носорог врезался. Нажми Space", WIDTH / 2, compact ? 48 : 32);
     ctx.textAlign = "left";
   }
 }
@@ -792,9 +782,6 @@ function drawRhino(): void {
   const pants = game.gameOver ? "#a85b57" : "#d94a3a";
   const pantsLight = game.gameOver ? "#c9887c" : "#ff7667";
 
-  ctx.fillStyle = shadow;
-  ctx.fillRect(x + 14, GROUND_Y + 2, 36, 5);
-
   if (rhino.ducking) {
     ctx.fillStyle = bodyColor;
     ctx.fillRect(x + 18, y + 7, 18, 14);
@@ -874,10 +861,15 @@ function drawRhino(): void {
     }
   }
 
+  ctx.fillStyle = bodyColor;
+  ctx.fillRect(x + 14, y + 52 + frontLegLift, 8, 4);
+  ctx.fillRect(x + 26, y + 52 + backLegLift, 8, 4);
+  ctx.fillStyle = bodyLight;
+  ctx.fillRect(x + 15, y + 52 + frontLegLift, 4, 2);
+  ctx.fillRect(x + 27, y + 52 + backLegLift, 4, 2);
+
   ctx.fillStyle = shadow;
   ctx.fillRect(x + 7, y + 24, 3, 5);
-  ctx.fillRect(x + 15, y + 53 + frontLegLift, 6, 3);
-  ctx.fillRect(x + 27, y + 53 + backLegLift, 6, 3);
 
   ctx.fillStyle = innerEar;
   ctx.fillRect(x + 21, y + 3, 2, 5);
@@ -1023,11 +1015,6 @@ function isCompactHud(): boolean {
 
 function setupTouchControls(): void {
   setupCanvasTouchControls();
-
-  bindTapButton(touchButtons.restart, () => {
-    unlockAudio();
-    input.restartPressed = true;
-  });
 }
 
 function setupCanvasTouchControls(): void {
@@ -1076,28 +1063,8 @@ function setupCanvasTouchControls(): void {
   canvas.addEventListener("pointerleave", release);
 }
 
-function bindTapButton(button: HTMLButtonElement | null, onPress: () => void): void {
-  if (button === null) {
-    return;
-  }
-
-  button.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    button.classList.add("is-active");
-    onPress();
-  });
-
-  button.addEventListener("pointerup", () => {
-    button.classList.remove("is-active");
-  });
-
-  button.addEventListener("pointercancel", () => {
-    button.classList.remove("is-active");
-  });
-
-  button.addEventListener("pointerleave", () => {
-    button.classList.remove("is-active");
-  });
+function shouldRestartGame(): boolean {
+  return game.gameOver && input.jumpPressed;
 }
 
 
