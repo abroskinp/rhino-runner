@@ -28,7 +28,6 @@ const LIKE_POWER_SPEED_MULTIPLIER = 1.33;
 
 type InputState = {
   jumpPressed: boolean;
-  downHeld: boolean;
 };
 
 type RhinoState = {
@@ -38,7 +37,6 @@ type RhinoState = {
   height: number;
   velocityY: number;
   onGround: boolean;
-  ducking: boolean;
   runFrame: number;
   blinkTimer: number;
 };
@@ -112,7 +110,6 @@ type AudioEngine = {
 
 const input: InputState = {
   jumpPressed: false,
-  downHeld: false,
 };
 
 const audio: AudioEngine = {
@@ -129,22 +126,10 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
     input.jumpPressed = true;
   }
-
-  if (event.code === "ArrowDown") {
-    event.preventDefault();
-    input.downHeld = true;
-  }
-
 });
 
 window.addEventListener("pointerdown", () => {
   unlockAudio();
-});
-
-window.addEventListener("keyup", (event) => {
-  if (event.code === "ArrowDown") {
-    input.downHeld = false;
-  }
 });
 
 setupTouchControls();
@@ -160,7 +145,6 @@ function createInitialState(): GameState {
       height: 58,
       velocityY: 0,
       onGround: true,
-      ducking: false,
       runFrame: 0,
       blinkTimer: 0,
     },
@@ -240,7 +224,7 @@ function update(delta: number): void {
   }
 
   if (!game.gameOver) {
-    game.started = game.started || input.jumpPressed || input.downHeld;
+    game.started = game.started || input.jumpPressed;
     updateRhino(delta);
     updateWorld(delta);
     updateObstacles(delta);
@@ -261,13 +245,10 @@ function update(delta: number): void {
 
 function updateRhino(delta: number): void {
   const rhino = game.rhino;
-  const standingHeight = 58;
-  const duckingHeight = 42;
 
   if (input.jumpPressed && rhino.onGround) {
     rhino.velocityY = JUMP_VELOCITY;
     rhino.onGround = false;
-    rhino.ducking = false;
     playJumpSound();
   }
 
@@ -282,10 +263,8 @@ function updateRhino(delta: number): void {
     rhino.onGround = true;
   }
 
-  const shouldDuck = input.downHeld && rhino.onGround;
-  rhino.ducking = shouldDuck;
-  rhino.height = shouldDuck ? duckingHeight : standingHeight;
-  rhino.width = shouldDuck ? 64 : 54;
+  rhino.height = 58;
+  rhino.width = 54;
 
   if (rhino.onGround) {
     rhino.y = GROUND_Y - rhino.height;
@@ -391,9 +370,10 @@ function spawnObstacles(delta: number): void {
       flapTimer: 0,
     };
   } else {
+    const flightHeights = [60, 88, 108];
     obstacle = {
       x: WIDTH + 20,
-      y: GROUND_Y - (Math.random() < 0.5 ? 94 : 64),
+      y: GROUND_Y - flightHeights[PhaserLikeRandomInt(0, flightHeights.length - 1)],
       width: 44,
       height: 28,
       speedScale: 1.14,
@@ -516,10 +496,6 @@ function collectLikes(): void {
 }
 
 function getRhinoHitbox(rhino: RhinoState): DOMRect {
-  if (rhino.ducking) {
-    return new DOMRect(rhino.x + 8, rhino.y + 10, rhino.width - 18, rhino.height - 12);
-  }
-
   return new DOMRect(rhino.x + 10, rhino.y + 6, rhino.width - 18, rhino.height - 8);
 }
 
@@ -696,9 +672,7 @@ function drawMessages(): void {
   if (!game.started) {
     ctx.textAlign = "center";
     const startText = compact ? "Тап по экрану или Space" : "Space чтобы стартовать";
-    const hintText = compact
-      ? "Тап - прыжок, удержание - пригнуться"
-      : "Носорог бежит сам, ты только прыгай и пригибайся";
+    const hintText = compact ? "Тап по экрану, чтобы прыгать" : "Носорог бежит сам, ты только прыгай";
     ctx.fillText(startText, WIDTH / 2, compact ? 48 : 32);
     ctx.fillStyle = isNight() ? "#b7cae1" : "#6e8da7";
     ctx.fillText(hintText, WIDTH / 2, compact ? 66 : 56);
@@ -798,7 +772,7 @@ function drawPtero(obstacle: Obstacle): void {
 
 function drawRhino(): void {
   const rhino = game.rhino;
-  const running = rhino.onGround && !rhino.ducking;
+  const running = rhino.onGround;
   const stepWave = running ? Math.sin(rhino.runFrame * 1.1) : 0;
   const bodyBob = running ? Math.round(Math.abs(stepWave) * 2) : 0;
   const frontLegLift = running ? Math.max(0, Math.round(stepWave * 4)) : 0;
@@ -817,83 +791,51 @@ function drawRhino(): void {
   const pants = game.gameOver ? "#a85b57" : "#d94a3a";
   const pantsLight = game.gameOver ? "#c9887c" : "#ff7667";
 
-  if (rhino.ducking) {
-    ctx.fillStyle = bodyColor;
-    ctx.fillRect(x + 18, y + 7, 18, 14);
-    ctx.fillRect(x + 33, y + 9, 10, 10);
-    ctx.fillRect(x + 41, y + 11, 10, 8);
-    ctx.fillRect(x + 49, y + 13, 9, 5);
-    ctx.fillRect(x + 20, y + 2, 5, 8);
-    ctx.fillRect(x + 29, y + 3, 5, 7);
-    ctx.fillStyle = bodyLight;
-    ctx.fillRect(x + 22, y + 10, 10, 6);
-    ctx.fillRect(x + 41, y + 12, 5, 3);
-    ctx.fillStyle = horn;
-    ctx.fillRect(x + 50, y + 10, 8, 4);
-    ctx.fillRect(x + 57, y + 8, 5, 3);
-    ctx.fillRect(x + 60, y + 7, 2, 2);
+  ctx.fillStyle = bodyColor;
+  ctx.fillRect(x + 18, y + 6, 18, 15);
+  ctx.fillRect(x + 33, y + 8, 11, 11);
+  ctx.fillRect(x + 42, y + 10, 11, 9);
+  ctx.fillRect(x + 50, y + 12, 9, 6);
+  ctx.fillRect(x + 20, y + 1, 5, 9);
+  ctx.fillRect(x + 29, y + 2, 5, 8);
 
-    ctx.fillStyle = jacket;
-    ctx.fillRect(x + 11, y + 19, 23, 13);
-    ctx.fillRect(x + 24, y + 20, 10, 9);
-    ctx.fillRect(x + 16, y + 16, 8, 6);
-    ctx.fillRect(x + 28, y + 16, 8, 6);
-    ctx.fillStyle = jacketLight;
-    ctx.fillRect(x + 14, y + 21, 10, 5);
-    ctx.fillRect(x + 26, y + 21, 4, 6);
+  ctx.fillStyle = jacket;
+  ctx.fillRect(x + 11, y + 20, 22, 16);
+  ctx.fillRect(x + 8, y + 24, 7, 9);
+  ctx.fillRect(x + 16, y + 15, 9, 7);
+  ctx.fillRect(x + 27, y + 15, 9, 7);
+  ctx.fillRect(x + 31, y + 21, 7, 12);
+  ctx.fillStyle = jacketLight;
+  ctx.fillRect(x + 14, y + 22, 10, 7);
+  ctx.fillRect(x + 26, y + 22, 5, 6);
+  ctx.fillRect(x + 17, y + 16, 5, 3);
+
+  ctx.fillStyle = pants;
+  ctx.fillRect(x + 14, y + 36, 7, 20);
+  ctx.fillRect(x + 26, y + 36, 7, 20);
+  ctx.fillRect(x + 18, y + 31, 10, 8);
+  ctx.fillStyle = pantsLight;
+  ctx.fillRect(x + 15, y + 38, 2, 10);
+  ctx.fillRect(x + 27, y + 38, 2, 10);
+  ctx.fillRect(x + 19, y + 33, 6, 3);
+
+  ctx.fillStyle = bodyLight;
+  ctx.fillRect(x + 22, y + 10, 10, 7);
+  ctx.fillRect(x + 42, y + 12, 5, 4);
+  ctx.fillRect(x + 33, y + 17, 3, 2);
+
+  ctx.fillStyle = horn;
+  ctx.fillRect(x + 50, y + 10, 9, 5);
+  ctx.fillRect(x + 58, y + 8, 5, 4);
+  ctx.fillRect(x + 61, y + 6, 2, 2);
+
+  if (rhino.onGround) {
     ctx.fillStyle = pants;
-    ctx.fillRect(x + 14, y + 32, 6, 10);
-    ctx.fillRect(x + 26, y + 32, 6, 10);
+    ctx.fillRect(x + 14, y + 36 + frontLegLift, 7, 20 - frontLegLift);
+    ctx.fillRect(x + 26, y + 36 + backLegLift, 7, 20 - backLegLift);
     ctx.fillStyle = pantsLight;
-    ctx.fillRect(x + 14, y + 35, 2, 5);
-    ctx.fillRect(x + 27, y + 35, 2, 5);
-  } else {
-    ctx.fillStyle = bodyColor;
-    ctx.fillRect(x + 18, y + 6, 18, 15);
-    ctx.fillRect(x + 33, y + 8, 11, 11);
-    ctx.fillRect(x + 42, y + 10, 11, 9);
-    ctx.fillRect(x + 50, y + 12, 9, 6);
-    ctx.fillRect(x + 20, y + 1, 5, 9);
-    ctx.fillRect(x + 29, y + 2, 5, 8);
-
-    ctx.fillStyle = jacket;
-    ctx.fillRect(x + 11, y + 20, 22, 16);
-    ctx.fillRect(x + 8, y + 24, 7, 9);
-    ctx.fillRect(x + 16, y + 15, 9, 7);
-    ctx.fillRect(x + 27, y + 15, 9, 7);
-    ctx.fillRect(x + 31, y + 21, 7, 12);
-    ctx.fillStyle = jacketLight;
-    ctx.fillRect(x + 14, y + 22, 10, 7);
-    ctx.fillRect(x + 26, y + 22, 5, 6);
-    ctx.fillRect(x + 17, y + 16, 5, 3);
-
-    ctx.fillStyle = pants;
-    ctx.fillRect(x + 14, y + 36, 7, 20);
-    ctx.fillRect(x + 26, y + 36, 7, 20);
-    ctx.fillRect(x + 18, y + 31, 10, 8);
-    ctx.fillStyle = pantsLight;
-    ctx.fillRect(x + 15, y + 38, 2, 10);
-    ctx.fillRect(x + 27, y + 38, 2, 10);
-    ctx.fillRect(x + 19, y + 33, 6, 3);
-
-    ctx.fillStyle = bodyLight;
-    ctx.fillRect(x + 22, y + 10, 10, 7);
-    ctx.fillRect(x + 42, y + 12, 5, 4);
-    ctx.fillRect(x + 33, y + 17, 3, 2);
-
-    ctx.fillStyle = horn;
-    ctx.fillRect(x + 50, y + 10, 9, 5);
-    ctx.fillRect(x + 58, y + 8, 5, 4);
-    ctx.fillRect(x + 61, y + 6, 2, 2);
-
-    if (rhino.onGround) {
-      ctx.fillStyle = pants;
-      ctx.fillRect(x + 14, y + 36 + frontLegLift, 7, 20 - frontLegLift);
-      ctx.fillRect(x + 26, y + 36 + backLegLift, 7, 20 - backLegLift);
-      ctx.fillStyle = pantsLight;
-      ctx.fillRect(x + 15, y + 38 + frontLegLift, 2, Math.max(6, 10 - frontLegLift));
-      ctx.fillRect(x + 27, y + 38 + backLegLift, 2, Math.max(6, 10 - backLegLift));
-    }
+    ctx.fillRect(x + 15, y + 38 + frontLegLift, 2, Math.max(6, 10 - frontLegLift));
+    ctx.fillRect(x + 27, y + 38 + backLegLift, 2, Math.max(6, 10 - backLegLift));
   }
 
   ctx.fillStyle = bodyColor;
@@ -912,14 +854,14 @@ function drawRhino(): void {
 
   ctx.fillStyle = "#ffffff";
   if (!blink) {
-    ctx.fillRect(x + (rhino.ducking ? 41 : 44), y + 12, 3, 3);
+    ctx.fillRect(x + 44, y + 12, 3, 3);
   } else {
-    ctx.fillRect(x + (rhino.ducking ? 40 : 43), y + 13, 5, 1);
+    ctx.fillRect(x + 43, y + 13, 5, 1);
   }
   ctx.fillStyle = eye;
-  ctx.fillRect(x + (rhino.ducking ? 42 : 45), y + 13, 1, 1);
-  ctx.fillRect(x + (rhino.ducking ? 41 : 43), y + 18, 6, 2);
-  ctx.fillRect(x + (rhino.ducking ? 39 : 41), y + 21, 2, 1);
+  ctx.fillRect(x + 45, y + 13, 1, 1);
+  ctx.fillRect(x + 43, y + 18, 6, 2);
+  ctx.fillRect(x + 41, y + 21, 2, 1);
 }
 
 function unlockAudio(): void {
@@ -1062,25 +1004,6 @@ function setupTouchControls(): void {
 }
 
 function setupCanvasTouchControls(): void {
-  let holdTimer: number | null = null;
-  let pointerActive = false;
-  let duckMode = false;
-  const holdThresholdMs = 220;
-
-  const release = (): void => {
-    const shouldJump = pointerActive && !duckMode;
-    pointerActive = false;
-    input.downHeld = false;
-    if (holdTimer !== null) {
-      window.clearTimeout(holdTimer);
-      holdTimer = null;
-    }
-    if (shouldJump) {
-      input.jumpPressed = true;
-    }
-    duckMode = false;
-  };
-
   canvas.addEventListener("pointerdown", (event) => {
     if (!isTouchDevice()) {
       return;
@@ -1088,23 +1011,8 @@ function setupCanvasTouchControls(): void {
 
     event.preventDefault();
     unlockAudio();
-    pointerActive = true;
-    duckMode = false;
-    input.downHeld = false;
-
-    holdTimer = window.setTimeout(() => {
-      if (!pointerActive) {
-        return;
-      }
-
-      duckMode = true;
-      input.downHeld = true;
-    }, holdThresholdMs);
+    input.jumpPressed = true;
   });
-
-  canvas.addEventListener("pointerup", release);
-  canvas.addEventListener("pointercancel", release);
-  canvas.addEventListener("pointerleave", release);
 }
 
 function shouldRestartGame(): boolean {
