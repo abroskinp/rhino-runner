@@ -88,7 +88,7 @@
         }
       }
 
-      @media (max-width: 720px) {
+      @media (pointer: coarse) {
         body {
           place-items: start center;
         }
@@ -116,13 +116,21 @@
         .touch-controls {
           display: grid;
         }
+      }
 
-        .touch-button:not(.touch-button--restart) {
-          display: none;
+      @media (pointer: coarse) and (max-width: 720px) {
+        canvas {
+          min-height: 38vw;
+          max-height: 54vh;
+        }
+
+        .caption {
+          font-size: 12px;
+          line-height: 1.35;
         }
       }
 
-      @media (max-width: 720px) and (orientation: portrait) {
+      @media (pointer: coarse) and (orientation: portrait) {
         .caption::before {
           content: "Для лучшего обзора переверни телефон горизонтально. ";
           display: block;

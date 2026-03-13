@@ -1013,8 +1013,12 @@ function PhaserLikeRandomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function isTouchDevice(): boolean {
+  return window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+}
+
 function isCompactHud(): boolean {
-  return window.innerWidth <= 720;
+  return isTouchDevice() && window.innerWidth <= 720;
 }
 
 function setupTouchControls(): void {
@@ -1047,7 +1051,7 @@ function setupCanvasTouchControls(): void {
   };
 
   canvas.addEventListener("pointerdown", (event) => {
-    if (!isCompactHud()) {
+    if (!isTouchDevice()) {
       return;
     }
 
