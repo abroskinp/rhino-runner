@@ -23,6 +23,8 @@ const GRAVITY = 2200;
 const JUMP_VELOCITY = -780;
 const CLOUD_SPEED = 24;
 const STAR_SPEED = 12;
+const LIKE_POWER_DURATION = 3;
+const LIKE_POWER_SPEED_MULTIPLIER = 1.33;
 
 type InputState = {
   jumpPressed: boolean;
@@ -100,6 +102,7 @@ type GameState = {
   flashTimer: number;
   nextMilestone: number;
   footstepTimer: number;
+  likePowerTimer: number;
 };
 
 type AudioEngine = {
@@ -178,6 +181,7 @@ function createInitialState(): GameState {
     flashTimer: 0,
     nextMilestone: 2000,
     footstepTimer: 0.1,
+    likePowerTimer: 0,
   };
 }
 
@@ -231,6 +235,10 @@ function update(delta: number): void {
     resetGame();
   }
 
+  if (game.likePowerTimer > 0) {
+    game.likePowerTimer = Math.max(0, game.likePowerTimer - delta);
+  }
+
   if (!game.gameOver) {
     game.started = game.started || input.jumpPressed || input.downHeld;
     updateRhino(delta);
@@ -281,7 +289,7 @@ function updateRhino(delta: number): void {
 
   if (rhino.onGround) {
     rhino.y = GROUND_Y - rhino.height;
-    rhino.runFrame += delta * (game.speed * 0.03);
+    rhino.runFrame += delta * (currentSpeed() * 0.03);
   }
 
   rhino.blinkTimer += delta;
@@ -292,7 +300,7 @@ function updateWorld(delta: number): void {
     return;
   }
 
-  game.distance += delta * (game.speed * 0.1);
+  game.distance += delta * (currentSpeed() * 0.1);
   game.speed = Math.min(MAX_SPEED, game.speed + delta * 8);
 
   if (game.distance >= game.nextMilestone) {
@@ -332,7 +340,7 @@ function updateHills(hills: Hill[], delta: number, factor: number): void {
 
 function updateObstacles(delta: number): void {
   game.obstacles.forEach((obstacle) => {
-    obstacle.x -= game.speed * obstacle.speedScale * delta;
+    obstacle.x -= currentSpeed() * obstacle.speedScale * delta;
     obstacle.flapTimer += delta * 14;
   });
 
@@ -341,7 +349,7 @@ function updateObstacles(delta: number): void {
 
 function updateLikes(delta: number): void {
   game.likes.forEach((like) => {
-    like.x -= game.speed * delta;
+    like.x -= currentSpeed() * delta;
     like.bob += delta * 4;
   });
 
@@ -456,16 +464,24 @@ function updateAudio(delta: number): void {
     return;
   }
 
-  const tempo = Math.max(0.065, 0.18 - (game.speed - START_SPEED) / 4200);
+  const tempo = Math.max(0.055, 0.18 - (currentSpeed() - START_SPEED) / 4200);
   game.footstepTimer = tempo;
   playStepSound();
 }
 
 function detectCollision(): void {
   const rhinoBox = getRhinoHitbox(game.rhino);
-  const hit = game.obstacles.some((obstacle) => intersects(rhinoBox, getObstacleHitbox(obstacle)));
+  const hitIndex = game.obstacles.findIndex((obstacle) => intersects(rhinoBox, getObstacleHitbox(obstacle)));
 
-  if (!hit) {
+  if (hitIndex === -1) {
+    return;
+  }
+
+  if (game.likePowerTimer > 0) {
+    const obstacle = game.obstacles[hitIndex];
+    game.obstacles.splice(hitIndex, 1);
+    game.flashTimer = 0.18;
+    playPowerCrashSound();
     return;
   }
 
@@ -488,6 +504,7 @@ function collectLikes(): void {
       playLikeSound();
       if (game.likesCollected % 10 === 0) {
         playCelebrationSound();
+        activateLikePower();
       }
       return;
     }
@@ -541,7 +558,7 @@ function render(t: number): void {
 }
 
 function isNight(): boolean {
-  return Math.floor(game.distance / 2000) % 2 === 1;
+  return Math.floor(game.distance / 1500) % 2 === 1;
 }
 
 function drawSky(): void {
@@ -651,6 +668,24 @@ function drawScore(): void {
   const hi = String(game.highScore).padStart(5, "0");
   ctx.fillText(`HI ${hi}   ${score}`, WIDTH - (compact ? 12 : 18), compact ? 27 : 32);
   ctx.textAlign = "left";
+
+  if (game.likePowerTimer > 0) {
+    const barX = compact ? 112 : 164;
+    const barY = compact ? 14 : 12;
+    const barWidth = compact ? 154 : 238;
+    const barHeight = compact ? 12 : 14;
+    const progress = game.likePowerTimer / LIKE_POWER_DURATION;
+    ctx.fillStyle = isNight() ? "rgba(8, 18, 38, 0.58)" : "rgba(69, 49, 0, 0.28)";
+    ctx.fillRect(barX, barY, barWidth, barHeight);
+    ctx.fillStyle = "#ffd84a";
+    ctx.fillRect(barX, barY, barWidth * progress, barHeight);
+    ctx.strokeStyle = isNight() ? "#fff1a8" : "#8e6c00";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(barX, barY, barWidth, barHeight);
+    ctx.fillStyle = isNight() ? "#fff7cf" : "#5f4300";
+    ctx.font = compact ? 'bold 13px "Trebuchet MS", sans-serif' : 'bold 16px "Trebuchet MS", sans-serif';
+    ctx.fillText(`LIKE POWER ${game.likePowerTimer.toFixed(1)}s`, barX, barY + (compact ? 29 : 34));
+  }
 }
 
 function drawMessages(): void {
@@ -1001,12 +1036,21 @@ function playCelebrationSound(): void {
   window.setTimeout(() => playTone(1180, 1480, 0.11, 0.028, "triangle"), 150);
 }
 
+function playPowerCrashSound(): void {
+  playTone(380, 620, 0.08, 0.035, "sawtooth");
+  window.setTimeout(() => playTone(620, 420, 0.07, 0.03, "triangle"), 50);
+}
+
 function PhaserLikeRandomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function isTouchDevice(): boolean {
   return window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+}
+
+function currentSpeed(): number {
+  return game.speed * (game.likePowerTimer > 0 ? LIKE_POWER_SPEED_MULTIPLIER : 1);
 }
 
 function isCompactHud(): boolean {
@@ -1065,6 +1109,10 @@ function setupCanvasTouchControls(): void {
 
 function shouldRestartGame(): boolean {
   return game.gameOver && input.jumpPressed;
+}
+
+function activateLikePower(): void {
+  game.likePowerTimer = LIKE_POWER_DURATION;
 }
 
 
