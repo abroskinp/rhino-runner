@@ -1065,7 +1065,7 @@ function setupCanvasTouchControls(): void {
   let holdTimer: number | null = null;
   let pointerActive = false;
   let duckMode = false;
-  const holdThresholdMs = 120;
+  const holdThresholdMs = 220;
 
   const release = (): void => {
     const shouldJump = pointerActive && !duckMode;
