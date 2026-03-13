@@ -37,6 +37,7 @@
         height: auto;
         display: block;
         image-rendering: pixelated;
+        touch-action: none;
       }
 
       .caption {
@@ -45,6 +46,90 @@
         font-size: 14px;
         text-align: center;
       }
+
+      .touch-controls {
+        display: none;
+        margin-top: 16px;
+        gap: 12px;
+        grid-template-columns: 1fr;
+      }
+
+      .touch-button {
+        border: 0;
+        border-radius: 18px;
+        padding: 16px 12px;
+        font: inherit;
+        font-size: 18px;
+        font-weight: 700;
+        color: #16344d;
+        background: linear-gradient(180deg, #fffdf4 0%, #f8db7a 100%);
+        box-shadow: 0 10px 22px rgba(43, 89, 118, 0.18);
+        touch-action: manipulation;
+      }
+
+      .touch-button:active,
+      .touch-button.is-active {
+        transform: translateY(1px) scale(0.99);
+        box-shadow: 0 6px 14px rgba(43, 89, 118, 0.18);
+      }
+
+      .touch-button--duck {
+        background: linear-gradient(180deg, #eef7ff 0%, #9bd3ff 100%);
+      }
+
+      .touch-button--restart {
+        background: linear-gradient(180deg, #fff3f1 0%, #ffb18b 100%);
+      }
+
+      @media (max-width: 900px) {
+        .shell {
+          width: 100vw;
+          padding: 14px;
+        }
+      }
+
+      @media (max-width: 720px) {
+        body {
+          place-items: start center;
+        }
+
+        .shell {
+          padding: 10px;
+        }
+
+        .frame {
+          border-width: 3px;
+        }
+
+        canvas {
+          min-height: 38vw;
+          max-height: 54vh;
+          object-fit: contain;
+          background: #d9eef7;
+        }
+
+        .caption {
+          font-size: 12px;
+          line-height: 1.35;
+        }
+
+        .touch-controls {
+          display: grid;
+        }
+
+        .touch-button:not(.touch-button--restart) {
+          display: none;
+        }
+      }
+
+      @media (max-width: 720px) and (orientation: portrait) {
+        .caption::before {
+          content: "Для лучшего обзора переверни телефон горизонтально. ";
+          display: block;
+          margin-bottom: 6px;
+          font-weight: 700;
+        }
+      }
     </style>
   </head>
   <body>
@@ -52,7 +137,10 @@
       <div class="frame">
         <canvas id="game" width="960" height="240"></canvas>
       </div>
-      <div class="caption">Прыжок: Space / ArrowUp, присесть: ArrowDown, рестарт: R</div>
+      <div class="touch-controls" aria-label="Сенсорное управление">
+        <button class="touch-button touch-button--restart" type="button" data-control="restart">Restart</button>
+      </div>
+      <div class="caption">На телефоне: тап по экрану - прыжок, удержание - пригнуться, Restart - начать заново</div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

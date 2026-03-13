@@ -1,9 +1,10 @@
-const canvas = document.querySelector<HTMLCanvasElement>("#game");
+const canvasElement = document.querySelector<HTMLCanvasElement>("#game");
 
-if (canvas === null) {
+if (canvasElement === null) {
   throw new Error("Canvas element not found");
 }
 
+const canvas: HTMLCanvasElement = canvasElement;
 const context = canvas.getContext("2d");
 
 if (context === null) {
@@ -11,6 +12,9 @@ if (context === null) {
 }
 
 const ctx: CanvasRenderingContext2D = context;
+const touchButtons = {
+  restart: document.querySelector<HTMLButtonElement>('[data-control="restart"]'),
+};
 
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
@@ -147,6 +151,8 @@ window.addEventListener("keyup", (event) => {
     input.downHeld = false;
   }
 });
+
+setupTouchControls();
 
 requestAnimationFrame(loop);
 
@@ -642,36 +648,42 @@ function drawGround(): void {
 }
 
 function drawScore(): void {
+  const compact = isCompactHud();
   ctx.fillStyle = isNight() ? "#e8f3ff" : "#34506d";
-  ctx.font = 'bold 24px "Trebuchet MS", sans-serif';
+  ctx.font = compact ? 'bold 18px "Trebuchet MS", sans-serif' : 'bold 24px "Trebuchet MS", sans-serif';
   ctx.textAlign = "left";
-  drawHeartIcon(18, 18, 18);
-  ctx.font = 'bold 20px "Trebuchet MS", sans-serif';
-  ctx.fillText(`${game.likesCollected}`, 42, 31);
+  drawHeartIcon(compact ? 14 : 18, compact ? 14 : 18, compact ? 16 : 18);
+  ctx.font = compact ? 'bold 16px "Trebuchet MS", sans-serif' : 'bold 20px "Trebuchet MS", sans-serif';
+  ctx.fillText(`${game.likesCollected}`, compact ? 34 : 42, compact ? 27 : 31);
   ctx.textAlign = "right";
-  ctx.font = 'bold 24px "Trebuchet MS", sans-serif';
+  ctx.font = compact ? 'bold 18px "Trebuchet MS", sans-serif' : 'bold 24px "Trebuchet MS", sans-serif';
   const score = String(Math.floor(game.distance)).padStart(5, "0");
   const hi = String(game.highScore).padStart(5, "0");
-  ctx.fillText(`HI ${hi}   ${score}`, WIDTH - 18, 32);
+  ctx.fillText(`HI ${hi}   ${score}`, WIDTH - (compact ? 12 : 18), compact ? 27 : 32);
   ctx.textAlign = "left";
 }
 
 function drawMessages(): void {
+  const compact = isCompactHud();
   ctx.fillStyle = isNight() ? "#e8f3ff" : "#34506d";
-  ctx.font = 'bold 16px "Trebuchet MS", sans-serif';
+  ctx.font = compact ? 'bold 12px "Trebuchet MS", sans-serif' : 'bold 16px "Trebuchet MS", sans-serif';
 
   if (!game.started) {
     ctx.textAlign = "center";
-    ctx.fillText("SPACE чтобы стартовать", WIDTH / 2, 32);
+    const startText = compact ? "Тап по экрану или Space" : "SPACE чтобы стартовать";
+    const hintText = compact
+      ? "Тап - прыжок, удержание - пригнуться"
+      : "Носорог бежит сам, ты только прыгай и пригибайся";
+    ctx.fillText(startText, WIDTH / 2, compact ? 48 : 32);
     ctx.fillStyle = isNight() ? "#b7cae1" : "#6e8da7";
-    ctx.fillText("Носорог бежит сам, ты только прыгай и пригибайся", WIDTH / 2, 56);
+    ctx.fillText(hintText, WIDTH / 2, compact ? 66 : 56);
     ctx.textAlign = "left";
   }
 
   if (game.gameOver) {
     ctx.fillStyle = "#b54234";
     ctx.textAlign = "center";
-    ctx.fillText("Носорог врезался. Нажми R", WIDTH / 2, 32);
+    ctx.fillText(compact ? "Носорог врезался. Tap Restart" : "Носорог врезался. Нажми R", WIDTH / 2, compact ? 48 : 32);
     ctx.textAlign = "left";
   }
 }
@@ -1000,6 +1012,90 @@ function playCelebrationSound(): void {
 function PhaserLikeRandomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
+function isCompactHud(): boolean {
+  return window.innerWidth <= 720;
+}
+
+function setupTouchControls(): void {
+  setupCanvasTouchControls();
+
+  bindTapButton(touchButtons.restart, () => {
+    unlockAudio();
+    input.restartPressed = true;
+  });
+}
+
+function setupCanvasTouchControls(): void {
+  let holdTimer: number | null = null;
+  let pointerActive = false;
+  let duckMode = false;
+  const holdThresholdMs = 120;
+
+  const release = (): void => {
+    const shouldJump = pointerActive && !duckMode;
+    pointerActive = false;
+    input.downHeld = false;
+    if (holdTimer !== null) {
+      window.clearTimeout(holdTimer);
+      holdTimer = null;
+    }
+    if (shouldJump) {
+      input.jumpPressed = true;
+    }
+    duckMode = false;
+  };
+
+  canvas.addEventListener("pointerdown", (event) => {
+    if (!isCompactHud()) {
+      return;
+    }
+
+    event.preventDefault();
+    unlockAudio();
+    pointerActive = true;
+    duckMode = false;
+    input.downHeld = false;
+
+    holdTimer = window.setTimeout(() => {
+      if (!pointerActive) {
+        return;
+      }
+
+      duckMode = true;
+      input.downHeld = true;
+    }, holdThresholdMs);
+  });
+
+  canvas.addEventListener("pointerup", release);
+  canvas.addEventListener("pointercancel", release);
+  canvas.addEventListener("pointerleave", release);
+}
+
+function bindTapButton(button: HTMLButtonElement | null, onPress: () => void): void {
+  if (button === null) {
+    return;
+  }
+
+  button.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    button.classList.add("is-active");
+    onPress();
+  });
+
+  button.addEventListener("pointerup", () => {
+    button.classList.remove("is-active");
+  });
+
+  button.addEventListener("pointercancel", () => {
+    button.classList.remove("is-active");
+  });
+
+  button.addEventListener("pointerleave", () => {
+    button.classList.remove("is-active");
+  });
+}
+
 
 function shadeColor(hex: string, amount: number): string {
   const value = hex.replace("#", "");

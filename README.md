@@ -4,6 +4,8 @@
 
 **Играть онлайн:** [abroskinp.github.io/rhino-runner](https://abroskinp.github.io/rhino-runner/)
 
+![Rhino Runner preview](./assets/preview.svg)
+
 ## Об игре
 
 Rhino Runner - это быстрая аркада про бег, прыжки и сбор лайков по дороге.  
