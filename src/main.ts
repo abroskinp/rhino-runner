@@ -867,28 +867,33 @@ function drawHills(hills: Hill[], depth: "far" | "near"): void {
 
 function drawGround(): void {
   const night = isNight();
+  const worldScroll = game.distance * 1.5;
+  const roadTop = GROUND_Y + 2;
+  const roadHeight = 42;
+  const shoulderTop = roadTop + roadHeight;
+
   ctx.fillStyle = night ? "#7f6a43" : "#f3c869";
-  ctx.fillRect(0, GROUND_Y + 2, WIDTH, HEIGHT - GROUND_Y);
+  ctx.fillRect(0, roadTop, WIDTH, roadHeight);
+  ctx.fillStyle = night ? "#334b67" : "#d9ecf3";
+  ctx.fillRect(0, shoulderTop, WIDTH, HEIGHT - shoulderTop);
 
   ctx.strokeStyle = night ? "#493924" : "#7c5d2f";
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.moveTo(0, GROUND_Y + 2);
-  ctx.lineTo(WIDTH, GROUND_Y + 2);
+  ctx.moveTo(0, roadTop);
+  ctx.lineTo(WIDTH, roadTop);
   ctx.stroke();
 
   ctx.fillStyle = night ? "#5f4b2b" : "#a17635";
-  for (let x = -20; x < WIDTH + 20; x += 26) {
-    const offset = (performance.now() * game.speed * 0.00014 + x * 0.04) % 26;
-    ctx.fillRect(x - offset, GROUND_Y + 10, 12, 3);
-    ctx.fillRect(x + 9 - offset, GROUND_Y + 16, 7, 3);
+  const dashStep = 34;
+  const dashOffset = worldScroll % dashStep;
+  for (let x = -dashStep; x < WIDTH + dashStep; x += dashStep) {
+    ctx.fillRect(x - dashOffset, roadTop + 15, 14, 4);
+    ctx.fillRect(x + 18 - dashOffset, roadTop + 26, 9, 3);
   }
 
-  ctx.fillStyle = night ? "#715731" : "#c69541";
-  for (let x = 0; x < WIDTH; x += 64) {
-    ctx.fillRect(x + 10, GROUND_Y + 24, 20, 4);
-    ctx.fillRect(x + 40, GROUND_Y + 30, 10, 3);
-  }
+  ctx.fillStyle = night ? "#947649" : "#f7d989";
+  ctx.fillRect(0, roadTop + roadHeight - 6, WIDTH, 2);
 }
 
 function drawScore(): void {
