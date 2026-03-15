@@ -4,7 +4,7 @@
 
 **Играть онлайн:** [abroskinp.github.io/rhino-runner](https://abroskinp.github.io/rhino-runner/)
 
-![Rhino Runner gameplay screenshot](./assets/preview.svg)
+![Rhino Runner gameplay screenshot](./assets/screenshot.png)
 
 ## Об игре
 
