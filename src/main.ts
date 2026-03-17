@@ -173,7 +173,7 @@ function createInitialState(): GameState {
     gameOver: false,
     started: false,
     flashTimer: 0,
-    nextMilestone: 2000,
+    nextMilestone: 1000,
     footstepTimer: 0.1,
     likePowerTimer: 0,
   };
@@ -303,7 +303,7 @@ function updateWorld(delta: number): void {
 
   if (game.distance >= game.nextMilestone) {
     playScoreSound();
-    game.nextMilestone += 2000;
+    game.nextMilestone += 1000;
   }
 
   game.clouds.forEach((cloud) => {
@@ -571,20 +571,20 @@ function render(t: number): void {
 }
 
 function isNight(): boolean {
-  return Math.floor(game.distance / 1500) % 2 === 1;
+  return Math.floor(game.distance / 1000) % 2 === 1;
 }
 
 function drawSky(): void {
   const night = isNight();
   const gradient = ctx.createLinearGradient(0, 0, 0, HEIGHT);
   if (night) {
-    gradient.addColorStop(0, "#08152e");
-    gradient.addColorStop(0.45, "#17365a");
-    gradient.addColorStop(1, "#38506e");
+    gradient.addColorStop(0, "#0c1830");
+    gradient.addColorStop(0.45, "#203c5d");
+    gradient.addColorStop(1, "#50687f");
   } else {
-    gradient.addColorStop(0, "#78d4ff");
-    gradient.addColorStop(0.58, "#d9f4ff");
-    gradient.addColorStop(1, "#fff5c5");
+    gradient.addColorStop(0, "#8acff0");
+    gradient.addColorStop(0.58, "#dfedf5");
+    gradient.addColorStop(1, "#f5efcd");
   }
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -623,8 +623,8 @@ function drawClouds(): void {
     const x = cloud.x;
     const y = cloud.y;
     const s = cloud.size;
-    const fill = night ? "#aec4df" : "#fffdf6";
-    const shade = night ? "rgba(28, 45, 74, 0.28)" : "rgba(113, 175, 209, 0.18)";
+    const fill = night ? "#9cb2cb" : "#f3f5ef";
+    const shade = night ? "rgba(28, 45, 74, 0.2)" : "rgba(113, 175, 209, 0.12)";
 
     ctx.fillStyle = fill;
     if (cloud.variant === 0) {
@@ -656,7 +656,7 @@ function drawFarClouds(): void {
     const x = cloud.x;
     const y = cloud.y;
     const s = cloud.size;
-    const fill = night ? "rgba(155, 182, 214, 0.4)" : "rgba(255, 255, 248, 0.55)";
+    const fill = night ? "rgba(145, 168, 196, 0.3)" : "rgba(252, 252, 245, 0.4)";
 
     ctx.fillStyle = fill;
     if (cloud.variant === 0) {
@@ -717,8 +717,8 @@ function drawHills(hills: Hill[], depth: "far" | "near"): void {
         ? "rgba(73, 88, 103, 0.55)"
         : "rgba(88, 78, 60, 0.65)"
       : depth === "far"
-        ? "rgba(232, 205, 153, 0.78)"
-        : "rgba(233, 176, 103, 0.72)";
+        ? "rgba(232, 205, 153, 0.6)"
+        : "rgba(233, 176, 103, 0.52)";
     const left = hill.x;
     const baseY = hill.baseY;
     const width = hill.width;
@@ -856,10 +856,10 @@ function drawHills(hills: Hill[], depth: "far" | "near"): void {
   const haze = ctx.createLinearGradient(0, hazeTop, 0, hazeBottom);
   if (night) {
     haze.addColorStop(0, "rgba(103, 132, 167, 0)");
-    haze.addColorStop(1, depth === "far" ? "rgba(111, 131, 151, 0.2)" : "rgba(85, 101, 123, 0.14)");
+    haze.addColorStop(1, depth === "far" ? "rgba(111, 131, 151, 0.14)" : "rgba(85, 101, 123, 0.1)");
   } else {
     haze.addColorStop(0, "rgba(255, 241, 209, 0)");
-    haze.addColorStop(1, depth === "far" ? "rgba(255, 233, 188, 0.34)" : "rgba(251, 223, 170, 0.18)");
+    haze.addColorStop(1, depth === "far" ? "rgba(255, 233, 188, 0.22)" : "rgba(251, 223, 170, 0.12)");
   }
   ctx.fillStyle = haze;
   ctx.fillRect(0, hazeTop, WIDTH, hazeBottom - hazeTop);
@@ -878,7 +878,7 @@ function drawGround(): void {
   ctx.fillRect(0, shoulderTop, WIDTH, HEIGHT - shoulderTop);
 
   ctx.strokeStyle = night ? "#493924" : "#7c5d2f";
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(0, roadTop);
   ctx.lineTo(WIDTH, roadTop);
@@ -893,7 +893,7 @@ function drawGround(): void {
   }
 
   ctx.fillStyle = night ? "#947649" : "#f7d989";
-  ctx.fillRect(0, roadTop + roadHeight - 6, WIDTH, 2);
+  ctx.fillRect(0, roadTop + roadHeight - 5, WIDTH, 1);
 }
 
 function drawScore(): void {
@@ -1029,8 +1029,6 @@ function drawCactus(obstacle: Obstacle): void {
   const light = "#79c92d";
   const dark = "#2c6d0d";
   const spine = "#d7e88a";
-  const rock = "#d9b06a";
-  const rockShadow = "#b9863a";
 
   const drawSaguaro = (
     x: number,
@@ -1134,45 +1132,66 @@ function drawCactus(obstacle: Obstacle): void {
     }
   };
 
-  const drawBaseRocks = (x: number, y: number): void => {
-    ctx.fillStyle = rock;
-    ctx.beginPath();
-    ctx.moveTo(x + 4, y + 8);
-    ctx.lineTo(x + 10, y + 2);
-    ctx.lineTo(x + 18, y + 4);
-    ctx.lineTo(x + 16, y + 10);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(x + 14, y + 10);
-    ctx.lineTo(x + 20, y + 4);
-    ctx.lineTo(x + 27, y + 7);
-    ctx.lineTo(x + 24, y + 12);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = rockShadow;
-    ctx.fillRect(x + 8, y + 10, 8, 2);
-    ctx.fillRect(x + 18, y + 11, 6, 2);
-  };
-
   const drawVariant = (x: number, y: number, variant: CactusVariant, secondary: boolean): void => {
     switch (variant) {
       case "thin":
-        drawBaseRocks(x - 2, y + obstacle.height - (secondary ? 2 : 3));
-        drawSaguaro(x + (secondary ? 4 : 3), y + (secondary ? 2 : 0), secondary ? 12 : 14, secondary ? obstacle.height - 2 : obstacle.height, true, false, 0.74, 0.66);
+        drawSaguaro(
+          x + (secondary ? 5 : 4),
+          y + (secondary ? 2 : 0),
+          secondary ? 11 : 13,
+          secondary ? obstacle.height - 1 : obstacle.height + 1,
+          true,
+          false,
+          0.8,
+          0.66,
+        );
         break;
       case "tall":
-        drawBaseRocks(x - 1, y + obstacle.height - (secondary ? 3 : 4));
-        drawSaguaro(x + (secondary ? 2 : 1), y - (secondary ? 2 : 3), secondary ? 14 : 16, secondary ? obstacle.height : obstacle.height + 3, true, true, 0.78, 0.6);
+        drawSaguaro(
+          x + (secondary ? 2 : 1),
+          y - (secondary ? 3 : 5),
+          secondary ? 13 : 15,
+          secondary ? obstacle.height + 2 : obstacle.height + 6,
+          true,
+          true,
+          0.84,
+          0.54,
+        );
+        drawSaguaro(
+          x + (secondary ? 6 : 7),
+          y + (secondary ? 8 : 6),
+          secondary ? 8 : 9,
+          secondary ? 18 : 22,
+          false,
+          false,
+          0.7,
+          0.7,
+        );
         break;
       case "hook":
-        drawBaseRocks(x - 2, y + obstacle.height - (secondary ? 2 : 3));
-        drawSaguaro(x + (secondary ? 2 : 1), y + (secondary ? 1 : 0), secondary ? 14 : 17, secondary ? obstacle.height - 1 : obstacle.height, false, true, 0.68, 0.74);
+        drawSaguaro(
+          x + (secondary ? 1 : 0),
+          y + (secondary ? 1 : 0),
+          secondary ? 15 : 18,
+          secondary ? obstacle.height : obstacle.height + 1,
+          true,
+          true,
+          0.58,
+          0.8,
+        );
         break;
       case "classic":
       default:
-        drawBaseRocks(x - 2, y + obstacle.height - (secondary ? 2 : 3));
-        drawSaguaro(x + (secondary ? 2 : 1), y, secondary ? 14 : 18, obstacle.height, true, true, 0.68, 0.66);
+        drawSaguaro(
+          x + (secondary ? 2 : 1),
+          y,
+          secondary ? 14 : 18,
+          obstacle.height,
+          true,
+          true,
+          0.68,
+          0.66,
+        );
         break;
     }
   };
@@ -1185,18 +1204,18 @@ function drawCactus(obstacle: Obstacle): void {
 }
 
 function drawRock(obstacle: Obstacle): void {
-  const base = "#70401a";
-  const mid = "#8a5323";
-  const light = "#b36a2d";
-  const dark = "#4a2a10";
+  const base = "#5b3010";
+  const mid = "#8f5120";
+  const light = "#d48a3b";
+  const dark = "#2f1708";
   const blink = Math.sin(obstacle.flapTimer * 0.45) > 0.93;
   const variant = obstacle.poopVariant ?? "swirl";
   const x = obstacle.x;
   const wideHop = variant === "wide" ? Math.max(0, Math.round((Math.sin(obstacle.flapTimer * 1.15) + 1) * 0.8)) : 0;
   const y = obstacle.y + (variant === "wide" ? 5 : 4) - wideHop;
 
-  ctx.fillStyle = "rgba(83, 55, 23, 0.28)";
-  ctx.fillRect(x + 4, y + 18, 22, 3);
+  ctx.fillStyle = "rgba(48, 28, 10, 0.38)";
+  ctx.fillRect(x + 3, y + 18, 24, 3);
 
   ctx.fillStyle = base;
   if (variant === "wide") {
@@ -1262,16 +1281,16 @@ function drawRock(obstacle: Obstacle): void {
 
   ctx.fillStyle = light;
   if (variant === "wide") {
-    ctx.fillRect(x + 11, y + 7, 4, 1);
-    ctx.fillRect(x + 10, y + 11, 5, 1);
+    ctx.fillRect(x + 10, y + 6, 6, 2);
+    ctx.fillRect(x + 9, y + 10, 6, 2);
   } else if (variant === "lump") {
-    ctx.fillRect(x + 11, y + 6, 4, 1);
-    ctx.fillRect(x + 10, y + 10, 4, 1);
-    ctx.fillRect(x + 9, y + 14, 3, 1);
+    ctx.fillRect(x + 10, y + 5, 5, 2);
+    ctx.fillRect(x + 9, y + 9, 5, 2);
+    ctx.fillRect(x + 8, y + 13, 4, 2);
   } else {
-    ctx.fillRect(x + 11, y + 5, 4, 2);
-    ctx.fillRect(x + 10, y + 9, 5, 2);
-    ctx.fillRect(x + 9, y + 13, 4, 2);
+    ctx.fillRect(x + 10, y + 4, 5, 2);
+    ctx.fillRect(x + 9, y + 8, 6, 2);
+    ctx.fillRect(x + 8, y + 12, 5, 2);
   }
 
   ctx.fillStyle = "#ffffff";
@@ -1285,11 +1304,11 @@ function drawRock(obstacle: Obstacle): void {
 
   ctx.fillStyle = dark;
   if (!blink) {
-    ctx.fillRect(x + 12, y + 12, 1, 2);
-    ctx.fillRect(x + 21, y + 12, 1, 2);
+    ctx.fillRect(x + 12, y + 12, 2, 2);
+    ctx.fillRect(x + 21, y + 12, 2, 2);
   }
-  ctx.fillRect(x + 15, y + 16, 3, 1);
-  ctx.fillRect(x + 14, y + 17, 5, 1);
+  ctx.fillRect(x + 15, y + 16, 4, 1);
+  ctx.fillRect(x + 13, y + 17, 7, 1);
 }
 
 function drawPtero(obstacle: Obstacle): void {
